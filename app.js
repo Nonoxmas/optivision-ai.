@@ -24,14 +24,44 @@ const frameStyles = {
   minimal: {w:.22,h:.12,r:12,line:2,color:"#6d7d73"}
 };
 
-// Création du bouton pour changer de caméra
+// Bouton discret de changement de caméra
 const cameraSwitchButton = document.createElement("button");
 cameraSwitchButton.type = "button";
-cameraSwitchButton.textContent = "↻ Caméra arrière";
+cameraSwitchButton.setAttribute("aria-label", "Changer de caméra");
+cameraSwitchButton.title = "Changer de caméra";
+cameraSwitchButton.innerHTML = `
+  <svg viewBox="0 0 24 24" width="25" height="25"
+    fill="none" stroke="#111111" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true">
+    <path d="M16 3l4 4-4 4"/>
+    <path d="M20 7H9a5 5 0 0 0-5 5"/>
+    <path d="M8 21l-4-4 4-4"/>
+    <path d="M4 17h11a5 5 0 0 0 5-5"/>
+  </svg>
+`;
+
 cameraSwitchButton.hidden = true;
-cameraSwitchButton.style.cssText =
-  "display:none;margin:8px;padding:11px 16px;border:1px solid #263d37;border-radius:30px;background:white;color:#263d37;font-weight:600;cursor:pointer;";
-cameraButton.insertAdjacentElement("afterend", cameraSwitchButton);
+cameraSwitchButton.style.cssText = `
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  z-index:20;
+  width:40px;
+  height:40px;
+  padding:7px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  border:none;
+  outline:none;
+  border-radius:50%;
+  background:transparent;
+  color:#111;
+  cursor:pointer;
+  touch-action:manipulation;
+  filter:drop-shadow(0 1px 2px rgba(255,255,255,.85));
+`;
 
 function showToast(message){
   const t = $("#toast");
@@ -167,8 +197,13 @@ async function openCamera(facingMode){
   video.style.zIndex = "5";
   video.style.background = "#101816";
 
+  // La vidéo est ajoutée en premier
   area.appendChild(video);
+
   await video.play();
+
+  // Le bouton est placé au-dessus de la vidéo
+  area.appendChild(cameraSwitchButton);
 
   cameraFacingMode = facingMode;
 }
@@ -311,8 +346,12 @@ cameraButton.addEventListener("click", async () => {
       "Caméra avant active · Ajustez votre visage.";
 
     cameraButton.textContent = "◎ Prendre la photo";
+
     cameraSwitchButton.hidden = false;
-    cameraSwitchButton.style.display = "inline-block";
+    cameraSwitchButton.style.display = "flex";
+
+    // Garantir que le bouton reste au-dessus de la vidéo
+    $("#previewArea").appendChild(cameraSwitchButton);
 
     showToast("Caméra avant activée. Vous pouvez changer de caméra.");
 
@@ -324,7 +363,7 @@ cameraButton.addEventListener("click", async () => {
   }
 });
 
-// Bouton : passer de la caméra avant à la caméra arrière
+// Passer de la caméra avant à la caméra arrière
 cameraSwitchButton.addEventListener("click", async () => {
   if(!cameraStream) return;
 
@@ -337,8 +376,8 @@ cameraSwitchButton.addEventListener("click", async () => {
     stopCameraStream();
     await openCamera(nextMode);
 
-    cameraSwitchButton.textContent =
-      nextMode === "user" ? "↻ Caméra arrière" : "↻ Caméra avant";
+    cameraSwitchButton.hidden = false;
+    cameraSwitchButton.style.display = "flex";
 
     statusText.textContent =
       nextMode === "user"
@@ -356,6 +395,8 @@ cameraSwitchButton.addEventListener("click", async () => {
 
     try{
       await openCamera(previousMode);
+      cameraSwitchButton.hidden = false;
+      cameraSwitchButton.style.display = "flex";
       showToast("Impossible de changer de caméra. Ancienne caméra réactivée.");
     }catch(recoveryError){
       stopCamera();
