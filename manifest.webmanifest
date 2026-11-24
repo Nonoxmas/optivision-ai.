@@ -1,0 +1,9 @@
+{
+  "name": "OptiVision AI",
+  "short_name": "OptiVision",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f1",
+  "theme_color": "#102b2a",
+  "description": "Essayage virtuel de lunettes"
+}

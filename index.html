@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102b2a">
+  <meta name="description" content="OptiVision AI - Essayez vos lunettes virtuellement.">
+  <title>OptiVision AI | Essayage virtuel</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="OptiVision AI accueil">
+      <span class="brand-mark">O</span><span>OptiVision <b>AI</b></span>
+    </a>
+    <nav class="desktop-nav">
+      <a href="#catalogue">Catalogue</a><a href="#essayage">Essayage virtuel</a><a href="#comment-ca-marche">Comment ça marche</a>
+    </nav>
+    <a class="nav-cta" href="#essayage">Essayer maintenant <span>↗</span></a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu">☰</button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="pulse"></span> LA NOUVELLE EXPÉRIENCE OPTIQUE</div>
+        <h1>La monture parfaite<br>vous <em>va déjà.</em></h1>
+        <p>Découvrez votre prochain style. Essayez virtuellement nos montures depuis votre téléphone ou votre ordinateur, avant de faire votre choix.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#essayage">Lancer l'essayage <span>→</span></a>
+          <a class="text-link" href="#catalogue">Explorer les montures</a>
+        </div>
+        <div class="trust-row"><span>✦</span> Essayage sur photo ou caméra <i></i> Mobile & ordinateur</div>
+      </div>
+      <div class="hero-art">
+        <div class="art-glow"></div>
+        <div class="hero-card">
+          <div class="card-label">VOTRE STYLE, EN UN INSTANT</div>
+          <div class="portrait-placeholder">
+            <div class="portrait-head"><div class="hair"></div><div class="face"><span class="eye left"></span><span class="eye right"></span><span class="nose"></span><span class="mouth"></span></div></div>
+            <div class="sample-glasses"><span></span><span></span><i></i></div>
+          </div>
+          <div class="art-caption"><span class="caption-dot"></span> Aperçu de l'essayage virtuel <b>01 / 03</b></div>
+        </div>
+        <div class="floating-tag tag-top">✦ Trouvez votre signature</div>
+        <div class="floating-tag tag-bottom">⌁ Un style qui vous ressemble</div>
+      </div>
+    </section>
+
+    <section class="stats-strip">
+      <div><strong>01</strong><span>Choisissez une monture</span></div><div><strong>02</strong><span>Essayez-la virtuellement</span></div><div><strong>03</strong><span>Validez votre coup de cœur</span></div>
+    </section>
+
+    <section class="section try-section" id="essayage">
+      <div class="section-heading">
+        <div><div class="eyebrow">VOTRE MIROIR VIRTUEL</div><h2>À vous de <em>tester.</em></h2></div>
+        <p>Importez une photo ou activez votre caméra. Sélectionnez ensuite une monture pour découvrir votre nouveau look.</p>
+      </div>
+      <div class="try-layout">
+        <div class="try-stage">
+          <div class="stage-top"><span><i class="live-dot"></i> STUDIO D'ESSAYAGE</span><span class="stage-secure">◈ Aperçu privé sur cet appareil</span></div>
+          <div class="preview-area" id="previewArea">
+            <div class="empty-preview" id="emptyPreview">
+              <div class="upload-symbol">＋</div>
+              <h3>Votre visage, votre style.</h3>
+              <p>Ajoutez une photo de face pour commencer votre essayage.</p>
+              <label class="button button-primary upload-button">Importer une photo<input id="photoInput" type="file" accept="image/*" hidden></label>
+              <span class="small-note">JPG, PNG ou WEBP · Traitement local de l'image</span>
+            </div>
+            <img id="userPhoto" alt="Votre photo pour l'essayage" hidden>
+            <canvas id="glassesCanvas" hidden></canvas>
+            <div class="preview-controls" id="previewControls" hidden>
+              <button id="resetPhoto" class="icon-button" title="Changer de photo">↺</button>
+              <span>APERÇU DE VOTRE ESSAYAGE</span>
+              <button id="downloadLook" class="icon-button" title="Télécharger l'aperçu">↓</button>
+            </div>
+          </div>
+          <div class="stage-bottom">
+            <button class="camera-button" id="cameraButton">◎ Utiliser ma caméra</button>
+            <span id="cameraStatus">Aucune photo sélectionnée</span>
+          </div>
+          <video id="cameraVideo" autoplay playsinline hidden></video>
+        </div>
+        <aside class="try-sidebar">
+          <div class="sidebar-title"><div><span class="eyebrow">SÉLECTION</span><h3>Choisissez votre monture</h3></div><span class="step-count">01 <i>/ 02</i></span></div>
+          <div class="frame-list" id="frameList">
+            <button class="frame-option selected" data-frame="classic"><span class="frame-visual classic"><i></i><i></i></span><span><b>Épure classique</b><small>Élégante · Intemporelle</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="round"><span class="frame-visual round"><i></i><i></i></span><span><b>Ronde signature</b><small>Créative · Distinctive</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="bold"><span class="frame-visual bold"><i></i><i></i></span><span><b>Audace moderne</b><small>Affirmée · Contemporaine</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="minimal"><span class="frame-visual minimal"><i></i><i></i></span><span><b>Minimal chic</b><small>Légère · Discrète</small></span><span class="check">✓</span></button>
+          </div>
+          <div class="sidebar-tip"><span>✦</span><p><b>Astuce</b><br>Pour un meilleur aperçu, choisissez une photo de face, avec le visage bien éclairé.</p></div>
+          <a class="button button-dark full-button" href="#catalogue">Voir le catalogue complet <span>→</span></a>
+          <p class="prototype-note">Version initiale : le positionnement est un aperçu visuel. La détection automatique du visage et l'ajustement 3D seront intégrés dans une prochaine étape.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section catalog-section" id="catalogue">
+      <div class="section-heading">
+        <div><div class="eyebrow">LE CATALOGUE</div><h2>Un regard. <em>Plusieurs possibilités.</em></h2></div>
+        <p>Une première sélection de styles pour découvrir l'expérience. Les modèles et les prix seront personnalisables avec le véritable catalogue Bfamily Lunetterie.</p>
+      </div>
+      <div class="catalog-grid">
+        <article class="product-card"><div class="product-image product-one"><span class="product-tag">INTEMPOREL</span><div class="product-glasses shape-square"><i></i><i></i></div></div><div class="product-info"><div><h3>Urban Classic</h3><p>Monture carrée · Mixte</p></div><span class="product-price">Sur demande</span></div><button class="try-product" data-select="classic">Essayer cette forme <span>↗</span></button></article>
+        <article class="product-card"><div class="product-image product-two"><span class="product-tag">SIGNATURE</span><div class="product-glasses shape-round"><i></i><i></i></div></div><div class="product-info"><div><h3>Modern Round</h3><p>Monture ronde · Mixte</p></div><span class="product-price">Sur demande</span></div><button class="try-product" data-select="round">Essayer cette forme <span>↗</span></button></article>
+        <article class="product-card"><div class="product-image product-three"><span class="product-tag">AUDACIEUX</span><div class="product-glasses shape-bold"><i></i><i></i></div></div><div class="product-info"><div><h3>Bold Vision</h3><p>Monture épaisse · Mixte</p></div><span class="product-price">Sur demande</span></div><button class="try-product" data-select="bold">Essayer cette forme <span>↗</span></button></article>
+      </div>
+    </section>
+
+    <section class="how-section" id="comment-ca-marche">
+      <div class="section how-inner">
+        <div><div class="eyebrow">SIMPLE COMME UN CLIC</div><h2>Votre prochain regard<br>commence <em>ici.</em></h2></div>
+        <div class="how-steps"><div><b>01</b><span><strong>Choisissez</strong><small>Parcourez les styles et trouvez une monture qui vous plaît.</small></span></div><div><b>02</b><span><strong>Essayez</strong><small>Importez votre photo ou utilisez la caméra de votre appareil.</small></span></div><div><b>03</b><span><strong>Commandez</strong><small>Contactez notre équipe pour confirmer votre modèle.</small></span></div></div>
+      </div>
+    </section>
+    <section class="final-cta"><div><div class="eyebrow">LE STYLE VOUS ATTEND</div><h2>Prêt à changer<br>de <em>perspective ?</em></h2></div><a href="#essayage" class="button button-light">Essayer mes lunettes <span>→</span></a></section>
+  </main>
+  <footer><a class="brand footer-brand" href="#"><span class="brand-mark">O</span><span>OptiVision <b>AI</b></span></a><span>© 2026 OptiVision AI · Une expérience Bfamily</span><a href="#essayage">Retour en haut ↑</a></footer>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
