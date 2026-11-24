@@ -209,7 +209,7 @@ async function startFaceDetection(){
             lastFaceLandmarks = result.faceLandmarks[0];
 
             statusText.textContent =
-              "Visage détecté ! Gardez cette position.";
+              "Visage détecté ! Bougez doucement la tête pour essayer.";
 
           }else{
 
@@ -219,6 +219,9 @@ async function startFaceDetection(){
               "Placez votre visage devant la caméra.";
 
           }
+
+          // Actualiser les lunettes sur chaque détection
+          drawPreview();
 
         }catch(error){
           console.error("Erreur détection vidéo :",error);
@@ -262,7 +265,7 @@ function selectFrame(name){
     b.classList.toggle("selected",b.dataset.frame === name)
   );
 
-  if(!photo.hidden) drawPreview();
+  if(cameraStream || !photo.hidden) drawPreview();
 }
 
 function roundedRect(c,x,y,w,h,r){
@@ -274,7 +277,11 @@ function roundedRect(c,x,y,w,h,r){
 
 function drawPreview(){
 
-  if(photo.hidden || !photo.naturalWidth) return;
+  const live = !!cameraStream;
+  const sourceWidth = live ? video.videoWidth : photo.naturalWidth;
+  const sourceHeight = live ? video.videoHeight : photo.naturalHeight;
+
+  if((!live && photo.hidden) || !sourceWidth || !sourceHeight) return;
 
   const area = $("#previewArea");
   const rect = area.getBoundingClientRect();
@@ -288,13 +295,19 @@ function drawPreview(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,rect.width,rect.height);
 
+  // Miroir de la caméra avant
+  if(live && cameraFacingMode === "user"){
+    ctx.translate(rect.width,0);
+    ctx.scale(-1,1);
+  }
+
   const scale = Math.min(
-    rect.width/photo.naturalWidth,
-    rect.height/photo.naturalHeight
+    rect.width/sourceWidth,
+    rect.height/sourceHeight
   );
 
-  const w = photo.naturalWidth*scale;
-  const h = photo.naturalHeight*scale;
+  const w = sourceWidth*scale;
+  const h = sourceHeight*scale;
   const x = (rect.width-w)/2;
   const y = (rect.height-h)/2;
 
@@ -384,7 +397,7 @@ function drawPreview(){
 
       ctx.restore();
 
-      // Repères verts des yeux et du nez
+      // Repères des yeux et du nez
       const noseBridge = point(168);
 
       ctx.save();
@@ -408,7 +421,10 @@ function drawPreview(){
     }
   }
 
-  // Position de secours si le visage n'est pas détecté
+  // En direct, ne pas afficher de lunettes si aucun visage n'est détecté
+  if(live) return;
+
+  // Position de secours pour une photo sans détection
   const cx = x+w/2;
   const cy = y+h*.39;
   const lensW = w*s.w;
@@ -480,6 +496,8 @@ function stopCamera(){
 
   cameraButton.textContent = "◎ Utiliser ma caméra";
 
+  if(photo.hidden) canvas.hidden = true;
+
   cameraSwitchButton.hidden = true;
   cameraSwitchButton.style.display = "none";
 }
@@ -513,6 +531,16 @@ async function openCamera(facingMode){
   area.appendChild(video);
 
   await video.play();
+
+  // Calque transparent pour les lunettes en direct
+  canvas.hidden = false;
+  canvas.style.position = "absolute";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.zIndex = "6";
+  canvas.style.pointerEvents = "none";
+  area.appendChild(canvas);
 
   area.appendChild(cameraSwitchButton);
 
@@ -691,7 +719,7 @@ cameraButton.addEventListener("click",async () => {
     await openCamera("user");
 
     photo.hidden = true;
-    canvas.hidden = true;
+    canvas.hidden = false;
     empty.hidden = true;
     controls.hidden = true;
 
@@ -789,7 +817,7 @@ cameraSwitchButton.addEventListener("click",async () => {
 // Redessiner lors d'un changement de taille
 window.addEventListener("resize",() => {
 
-  if(!photo.hidden) drawPreview();
+  if(cameraStream || !photo.hidden) drawPreview();
 
 });
 
@@ -815,3 +843,4 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   });
 
 }
+  
