@@ -17,6 +17,13 @@ let photoUrl = null;
 let cameraStream = null;
 let cameraFacingMode = "user";
 
+// Détection du visage
+let faceLandmarker = null;
+let faceDetectionFrame = null;
+let lastFaceLandmarks = null;
+let lastDetectionTime = 0;
+let faceModuleLoading = null;
+
 const frameStyles = {
   classic: {w:.22,h:.115,r:13,line:7,color:"#263d37"},
   round: {w:.205,h:.205,r:50,line:7,color:"#263d37"},
@@ -71,6 +78,188 @@ function showToast(message){
   showToast.timer = setTimeout(() => t.classList.remove("show"), 2600);
 }
 
+// ========================================
+// DÉTECTION DU VISAGE AVEC MEDIAPIPE
+// ========================================
+
+async function getFaceLandmarker(){
+
+  if(faceLandmarker) return faceLandmarker;
+
+  if(faceModuleLoading) return faceModuleLoading;
+
+  faceModuleLoading = (async () => {
+
+    const vision = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm"
+    );
+
+    const { FilesetResolver, FaceLandmarker } = vision;
+
+    const fileset = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+
+    faceLandmarker = await FaceLandmarker.createFromOptions(
+      fileset,
+      {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "CPU"
+        },
+        runningMode: "IMAGE",
+        numFaces: 1
+      }
+    );
+
+    return faceLandmarker;
+
+  })();
+
+  try{
+    return await faceModuleLoading;
+  }catch(error){
+    faceModuleLoading = null;
+    throw error;
+  }
+}
+
+// Détecter un visage sur une photo importée
+async function detectFaceInPhoto(){
+
+  if(photo.hidden || !photo.naturalWidth) return;
+
+  lastFaceLandmarks = null;
+
+  statusText.textContent = "Analyse du visage en cours...";
+
+  try{
+
+    const detector = await getFaceLandmarker();
+
+    await detector.setOptions({
+      runningMode: "IMAGE"
+    });
+
+    const result = detector.detect(photo);
+
+    if(result.faceLandmarks && result.faceLandmarks.length > 0){
+
+      lastFaceLandmarks = result.faceLandmarks[0];
+
+      statusText.textContent =
+        "Visage détecté ! Préparation de l'essayage.";
+
+    }else{
+
+      statusText.textContent =
+        "Aucun visage détecté. Essayez une photo de face.";
+
+    }
+
+  }catch(error){
+
+    console.error("Erreur de détection du visage :", error);
+
+    statusText.textContent =
+      "Détection indisponible. Vérifiez votre connexion internet.";
+
+  }
+}
+
+// Détecter le visage en direct avec la caméra
+async function startFaceDetection(){
+
+  if(faceDetectionFrame){
+    cancelAnimationFrame(faceDetectionFrame);
+    faceDetectionFrame = null;
+  }
+
+  lastFaceLandmarks = null;
+  lastDetectionTime = 0;
+
+  try{
+
+    const detector = await getFaceLandmarker();
+
+    if(!cameraStream || video.paused) return;
+
+    await detector.setOptions({
+      runningMode: "VIDEO"
+    });
+
+    function detectLoop(){
+
+      if(!cameraStream || video.paused || video.readyState < 2){
+        faceDetectionFrame = requestAnimationFrame(detectLoop);
+        return;
+      }
+
+      const now = performance.now();
+
+      // Limiter la détection pour préserver les performances du téléphone
+      if(now - lastDetectionTime >= 150){
+
+        lastDetectionTime = now;
+
+        try{
+
+          const result = detector.detectForVideo(video, now);
+
+          if(result.faceLandmarks && result.faceLandmarks.length > 0){
+
+            lastFaceLandmarks = result.faceLandmarks[0];
+
+            statusText.textContent =
+              "Visage détecté ! Gardez cette position.";
+
+          }else{
+
+            lastFaceLandmarks = null;
+
+            statusText.textContent =
+              "Placez votre visage devant la caméra.";
+
+          }
+
+        }catch(error){
+
+          console.error("Erreur pendant la détection vidéo :", error);
+
+        }
+      }
+
+      faceDetectionFrame = requestAnimationFrame(detectLoop);
+    }
+
+    detectLoop();
+
+  }catch(error){
+
+    console.error("Impossible de démarrer la détection :", error);
+
+    statusText.textContent =
+      "Détection indisponible. Vérifiez votre connexion.";
+
+  }
+}
+
+// Arrêter la détection en cours
+function stopFaceDetection(){
+
+  if(faceDetectionFrame){
+    cancelAnimationFrame(faceDetectionFrame);
+    faceDetectionFrame = null;
+  }
+
+  lastFaceLandmarks = null;
+}
+
+// ========================================
+// FIN DE LA DÉTECTION DU VISAGE
+// ========================================
+
 function selectFrame(name){
   currentFrame = name;
   $$(".frame-option").forEach(b =>
@@ -86,6 +275,7 @@ function roundedRect(c,x,y,w,h,r){
 }
 
 function drawPreview(){
+
   if(photo.hidden || !photo.naturalWidth) return;
 
   const area = $("#previewArea");
@@ -146,6 +336,9 @@ function drawPreview(){
 
 // Arrêter uniquement le flux vidéo
 function stopCameraStream(){
+
+  stopFaceDetection();
+
   if(cameraStream){
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
@@ -159,19 +352,23 @@ function stopCameraStream(){
 
 // Fermer complètement la caméra
 function stopCamera(){
+
   stopCameraStream();
+
   cameraFacingMode = "user";
 
   video.hidden = true;
   video.style.display = "none";
 
   cameraButton.textContent = "◎ Utiliser ma caméra";
+
   cameraSwitchButton.hidden = true;
   cameraSwitchButton.style.display = "none";
 }
 
 // Ouvrir la caméra choisie
 async function openCamera(facingMode){
+
   const area = $("#previewArea");
 
   if(getComputedStyle(area).position === "static"){
@@ -197,19 +394,21 @@ async function openCamera(facingMode){
   video.style.zIndex = "5";
   video.style.background = "#101816";
 
-  // La vidéo est ajoutée en premier
   area.appendChild(video);
 
   await video.play();
 
-  // Le bouton est placé au-dessus de la vidéo
   area.appendChild(cameraSwitchButton);
 
   cameraFacingMode = facingMode;
+
+  // Lancer la reconnaissance du visage
+  startFaceDetection();
 }
 
 // Charger une photo
 function loadPhoto(file){
+
   if(!file || !file.type.startsWith("image/")) return;
 
   stopCamera();
@@ -219,12 +418,23 @@ function loadPhoto(file){
   photoUrl = URL.createObjectURL(file);
 
   photo.onload = () => {
+
     photo.hidden = false;
     empty.hidden = true;
     controls.hidden = false;
     canvas.hidden = false;
+
     statusText.textContent = "Photo prête · " + file.name;
+
     drawPreview();
+
+    // Analyser automatiquement le visage
+    detectFaceInPhoto();
+  };
+
+  photo.onerror = () => {
+    statusText.textContent = "Impossible de lire cette photo.";
+    showToast("Cette image ne peut pas être ouverte.");
   };
 
   photo.src = photoUrl;
@@ -240,36 +450,47 @@ $$(".frame-option").forEach(b =>
 
 $$(".try-product").forEach(b =>
   b.addEventListener("click", () => {
+
     selectFrame(b.dataset.select);
+
     $("#essayage").scrollIntoView({behavior:"smooth"});
+
     showToast("Monture sélectionnée. Ajoutez une photo pour l'essayer.");
+
   })
 );
 
 $("#resetPhoto").addEventListener("click", () => {
+
   stopCamera();
 
   photo.hidden = true;
   canvas.hidden = true;
   controls.hidden = true;
   empty.hidden = false;
+
   photoInput.value = "";
+
   statusText.textContent = "Aucune photo sélectionnée";
 
   if(photoUrl){
     URL.revokeObjectURL(photoUrl);
     photoUrl = null;
   }
+
 });
 
 $("#downloadLook").addEventListener("click", () => {
+
   if(photo.hidden) return;
 
   const out = document.createElement("canvas");
+
   out.width = photo.naturalWidth;
   out.height = photo.naturalHeight;
 
   const c = out.getContext("2d");
+
   c.drawImage(photo,0,0);
 
   c.drawImage(
@@ -279,13 +500,17 @@ $("#downloadLook").addEventListener("click", () => {
   );
 
   const a = document.createElement("a");
+
   a.download = "optivision-ai-essayage.png";
   a.href = out.toDataURL("image/png");
+
   a.click();
+
 });
 
 // Premier clic : ouvrir la caméra avant
 cameraButton.addEventListener("click", async () => {
+
   if(cameraStream){
 
     // Deuxième clic : prendre la photo
@@ -295,12 +520,12 @@ cameraButton.addEventListener("click", async () => {
     }
 
     const snap = document.createElement("canvas");
+
     snap.width = video.videoWidth;
     snap.height = video.videoHeight;
 
     const snapCtx = snap.getContext("2d");
 
-    // Miroir uniquement pour la caméra avant
     if(cameraFacingMode === "user"){
       snapCtx.translate(snap.width,0);
       snapCtx.scale(-1,1);
@@ -309,6 +534,7 @@ cameraButton.addEventListener("click", async () => {
     snapCtx.drawImage(video,0,0);
 
     snap.toBlob(blob => {
+
       if(!blob){
         showToast("Impossible de prendre la photo. Réessayez.");
         return;
@@ -321,7 +547,9 @@ cameraButton.addEventListener("click", async () => {
       );
 
       loadPhoto(file);
+
       showToast("Photo prise ! Vous pouvez essayer les montures.");
+
     },"image/png");
 
     return;
@@ -335,6 +563,7 @@ cameraButton.addEventListener("click", async () => {
   cameraButton.disabled = true;
 
   try{
+
     await openCamera("user");
 
     photo.hidden = true;
@@ -343,37 +572,49 @@ cameraButton.addEventListener("click", async () => {
     controls.hidden = true;
 
     statusText.textContent =
-      "Caméra avant active · Ajustez votre visage.";
+      "Caméra avant active · Placez votre visage devant la caméra.";
 
     cameraButton.textContent = "◎ Prendre la photo";
 
     cameraSwitchButton.hidden = false;
     cameraSwitchButton.style.display = "flex";
 
-    // Garantir que le bouton reste au-dessus de la vidéo
     $("#previewArea").appendChild(cameraSwitchButton);
 
-    showToast("Caméra avant activée. Vous pouvez changer de caméra.");
+    showToast("Caméra avant activée. La détection du visage démarre.");
 
   }catch(err){
+
+    console.error("Erreur caméra :", err);
+
     stopCamera();
+
     showToast("Autorisez l'accès à la caméra ou importez une photo.");
+
   }finally{
+
     cameraButton.disabled = false;
+
   }
+
 });
 
 // Passer de la caméra avant à la caméra arrière
 cameraSwitchButton.addEventListener("click", async () => {
+
   if(!cameraStream) return;
 
   const previousMode = cameraFacingMode;
-  const nextMode = previousMode === "user" ? "environment" : "user";
+
+  const nextMode =
+    previousMode === "user" ? "environment" : "user";
 
   cameraSwitchButton.disabled = true;
 
   try{
+
     stopCameraStream();
+
     await openCamera(nextMode);
 
     cameraSwitchButton.hidden = false;
@@ -381,8 +622,8 @@ cameraSwitchButton.addEventListener("click", async () => {
 
     statusText.textContent =
       nextMode === "user"
-        ? "Caméra avant active · Ajustez votre visage."
-        : "Caméra arrière active · Ajustez votre visage.";
+        ? "Caméra avant active · Placez votre visage devant la caméra."
+        : "Caméra arrière active · Placez votre visage devant la caméra.";
 
     showToast(
       nextMode === "user"
@@ -391,37 +632,60 @@ cameraSwitchButton.addEventListener("click", async () => {
     );
 
   }catch(err){
+
+    console.error("Erreur changement caméra :", err);
+
     stopCameraStream();
 
     try{
+
       await openCamera(previousMode);
+
       cameraSwitchButton.hidden = false;
       cameraSwitchButton.style.display = "flex";
-      showToast("Impossible de changer de caméra. Ancienne caméra réactivée.");
+
+      showToast("Ancienne caméra réactivée.");
+
     }catch(recoveryError){
+
       stopCamera();
+
       showToast("Impossible d'accéder à la caméra. Réessayez.");
+
     }
+
   }finally{
+
     cameraSwitchButton.disabled = false;
+
   }
+
 });
 
 window.addEventListener("resize", () => {
+
   if(!photo.hidden) drawPreview();
+
 });
 
 $("#menuToggle").addEventListener("click", () => {
+
   const nav = $(".desktop-nav");
+
   const open = nav.style.display === "flex";
 
   nav.style.cssText = open
     ? ""
     : "display:flex;position:absolute;top:68px;left:0;right:0;background:white;padding:22px;flex-direction:column;gap:18px;box-shadow:0 10px 20px #102b2a12";
+
 });
 
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+
   window.addEventListener("load", () => {
+
     navigator.serviceWorker.register("./sw.js").catch(() => {});
+
   });
+
 }
