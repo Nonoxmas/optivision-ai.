@@ -23,6 +23,28 @@ let lastFaceLandmarks = null;
 let lastDetectionTime = 0;
 let faceModuleLoading = null;
 
+// Stabilisation progressive des repères faciaux
+let smoothedFaceLandmarks = null;
+
+function smoothFaceLandmarks(newLandmarks, factor = 0.35){
+
+  if(!smoothedFaceLandmarks){
+    smoothedFaceLandmarks = newLandmarks.map(p => ({...p}));
+    return smoothedFaceLandmarks;
+  }
+
+  smoothedFaceLandmarks = newLandmarks.map((p, i) => ({
+    x: smoothedFaceLandmarks[i].x +
+       (p.x - smoothedFaceLandmarks[i].x) * factor,
+    y: smoothedFaceLandmarks[i].y +
+       (p.y - smoothedFaceLandmarks[i].y) * factor,
+    z: smoothedFaceLandmarks[i].z +
+       (p.z - smoothedFaceLandmarks[i].z) * factor
+  }));
+
+  return smoothedFaceLandmarks;
+}
+
 const frameStyles = {
   classic: {w:.22,h:.115,r:13,line:7,color:"#263d37"},
   round: {w:.205,h:.205,r:50,line:7,color:"#263d37"},
@@ -129,6 +151,8 @@ async function detectFaceInPhoto(){
   if(photo.hidden || !photo.naturalWidth) return;
 
   lastFaceLandmarks = null;
+  smoothedFaceLandmarks = null;
+
   statusText.textContent = "Analyse du visage en cours...";
 
   try{
@@ -177,6 +201,7 @@ async function startFaceDetection(){
   }
 
   lastFaceLandmarks = null;
+  smoothedFaceLandmarks = null;
   lastDetectionTime = 0;
 
   try{
@@ -206,7 +231,11 @@ async function startFaceDetection(){
 
           if(result.faceLandmarks && result.faceLandmarks.length > 0){
 
-            lastFaceLandmarks = result.faceLandmarks[0];
+            // Lisser les mouvements pour réduire les tremblements
+            lastFaceLandmarks = smoothFaceLandmarks(
+              result.faceLandmarks[0],
+              0.35
+            );
 
             statusText.textContent =
               "Visage détecté ! Bougez doucement la tête pour essayer.";
@@ -214,6 +243,7 @@ async function startFaceDetection(){
           }else{
 
             lastFaceLandmarks = null;
+            smoothedFaceLandmarks = null;
 
             statusText.textContent =
               "Placez votre visage devant la caméra.";
@@ -251,6 +281,7 @@ function stopFaceDetection(){
   }
 
   lastFaceLandmarks = null;
+  smoothedFaceLandmarks = null;
 }
 
 // ========================================
@@ -842,5 +873,4 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 
   });
 
-}
-  
+  }
