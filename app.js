@@ -15,8 +15,7 @@ const video = $("#cameraVideo");
 let currentFrame = "classic";
 let photoUrl = null;
 let cameraStream = null;
-
-const cameraButtonLabel = "◎ Utiliser ma caméra";
+let cameraFacingMode = "user";
 
 const frameStyles = {
   classic: {w:.22,h:.115,r:13,line:7,color:"#263d37"},
@@ -24,6 +23,15 @@ const frameStyles = {
   bold: {w:.225,h:.13,r:8,line:12,color:"#263d37"},
   minimal: {w:.22,h:.12,r:12,line:2,color:"#6d7d73"}
 };
+
+// Création du bouton pour changer de caméra
+const cameraSwitchButton = document.createElement("button");
+cameraSwitchButton.type = "button";
+cameraSwitchButton.textContent = "↻ Caméra arrière";
+cameraSwitchButton.hidden = true;
+cameraSwitchButton.style.cssText =
+  "display:none;margin:8px;padding:11px 16px;border:1px solid #263d37;border-radius:30px;background:white;color:#263d37;font-weight:600;cursor:pointer;";
+cameraButton.insertAdjacentElement("afterend", cameraSwitchButton);
 
 function showToast(message){
   const t = $("#toast");
@@ -106,7 +114,8 @@ function drawPreview(){
   ctx.restore();
 }
 
-function stopCamera(){
+// Arrêter uniquement le flux vidéo
+function stopCameraStream(){
   if(cameraStream){
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
@@ -115,15 +124,56 @@ function stopCamera(){
   if(video){
     video.pause();
     video.srcObject = null;
-    video.hidden = true;
-    video.style.display = "none";
-  }
-
-  if(cameraButton){
-    cameraButton.textContent = cameraButtonLabel;
   }
 }
 
+// Fermer complètement la caméra
+function stopCamera(){
+  stopCameraStream();
+  cameraFacingMode = "user";
+
+  video.hidden = true;
+  video.style.display = "none";
+
+  cameraButton.textContent = "◎ Utiliser ma caméra";
+  cameraSwitchButton.hidden = true;
+  cameraSwitchButton.style.display = "none";
+}
+
+// Ouvrir la caméra choisie
+async function openCamera(facingMode){
+  const area = $("#previewArea");
+
+  if(getComputedStyle(area).position === "static"){
+    area.style.position = "relative";
+  }
+
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: {ideal: facingMode}
+    },
+    audio: false
+  });
+
+  video.srcObject = cameraStream;
+  video.hidden = false;
+  video.style.display = "block";
+  video.style.position = "absolute";
+  video.style.inset = "0";
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "contain";
+  video.style.transform = facingMode === "user" ? "scaleX(-1)" : "none";
+  video.style.zIndex = "5";
+  video.style.background = "#101816";
+
+  area.appendChild(video);
+  await video.play();
+
+  cameraFacingMode = facingMode;
+}
+
+// Charger une photo
 function loadPhoto(file){
   if(!file || !file.type.startsWith("image/")) return;
 
@@ -199,13 +249,11 @@ $("#downloadLook").addEventListener("click", () => {
   a.click();
 });
 
-/* NOUVEAU FONCTIONNEMENT DE LA CAMÉRA */
-
+// Premier clic : ouvrir la caméra avant
 cameraButton.addEventListener("click", async () => {
-
-  // Si la caméra est déjà ouverte, le clic prend la photo.
   if(cameraStream){
 
+    // Deuxième clic : prendre la photo
     if(!video.videoWidth){
       showToast("Patientez un instant, la caméra se prépare.");
       return;
@@ -217,9 +265,12 @@ cameraButton.addEventListener("click", async () => {
 
     const snapCtx = snap.getContext("2d");
 
-    // Image miroir pour correspondre à l'aperçu.
-    snapCtx.translate(snap.width,0);
-    snapCtx.scale(-1,1);
+    // Miroir uniquement pour la caméra avant
+    if(cameraFacingMode === "user"){
+      snapCtx.translate(snap.width,0);
+      snapCtx.scale(-1,1);
+    }
+
     snapCtx.drawImage(video,0,0);
 
     snap.toBlob(blob => {
@@ -241,7 +292,6 @@ cameraButton.addEventListener("click", async () => {
     return;
   }
 
-  // Premier clic : ouverture de la caméra.
   if(!navigator.mediaDevices?.getUserMedia){
     showToast("Caméra indisponible. Importez une photo à la place.");
     return;
@@ -250,54 +300,69 @@ cameraButton.addEventListener("click", async () => {
   cameraButton.disabled = true;
 
   try{
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:"user"
-      },
-      audio:false
-    });
+    await openCamera("user");
 
-    const area = $("#previewArea");
-
-    // Place la vidéo dans la zone d'aperçu.
-    area.appendChild(video);
-
-    if(getComputedStyle(area).position === "static"){
-      area.style.position = "relative";
-    }
-
-    video.srcObject = cameraStream;
-    video.hidden = false;
-    video.style.display = "block";
-    video.style.position = "absolute";
-    video.style.inset = "0";
-    video.style.width = "100%";
-    video.style.height = "100%";
-    video.style.objectFit = "contain";
-    video.style.transform = "scaleX(-1)";
-    video.style.zIndex = "5";
-    video.style.background = "#101816";
-
-    await video.play();
-
-    // On masque les autres éléments pendant l'aperçu.
     photo.hidden = true;
     canvas.hidden = true;
     empty.hidden = true;
     controls.hidden = true;
 
     statusText.textContent =
-      "Caméra active · Ajustez votre visage puis prenez la photo.";
+      "Caméra avant active · Ajustez votre visage.";
 
     cameraButton.textContent = "◎ Prendre la photo";
+    cameraSwitchButton.hidden = false;
+    cameraSwitchButton.style.display = "inline-block";
 
-    showToast("Caméra activée. Positionnez votre visage.");
+    showToast("Caméra avant activée. Vous pouvez changer de caméra.");
 
   }catch(err){
     stopCamera();
     showToast("Autorisez l'accès à la caméra ou importez une photo.");
   }finally{
     cameraButton.disabled = false;
+  }
+});
+
+// Bouton : passer de la caméra avant à la caméra arrière
+cameraSwitchButton.addEventListener("click", async () => {
+  if(!cameraStream) return;
+
+  const previousMode = cameraFacingMode;
+  const nextMode = previousMode === "user" ? "environment" : "user";
+
+  cameraSwitchButton.disabled = true;
+
+  try{
+    stopCameraStream();
+    await openCamera(nextMode);
+
+    cameraSwitchButton.textContent =
+      nextMode === "user" ? "↻ Caméra arrière" : "↻ Caméra avant";
+
+    statusText.textContent =
+      nextMode === "user"
+        ? "Caméra avant active · Ajustez votre visage."
+        : "Caméra arrière active · Ajustez votre visage.";
+
+    showToast(
+      nextMode === "user"
+        ? "Caméra avant activée."
+        : "Caméra arrière activée."
+    );
+
+  }catch(err){
+    stopCameraStream();
+
+    try{
+      await openCamera(previousMode);
+      showToast("Impossible de changer de caméra. Ancienne caméra réactivée.");
+    }catch(recoveryError){
+      stopCamera();
+      showToast("Impossible d'accéder à la caméra. Réessayez.");
+    }
+  }finally{
+    cameraSwitchButton.disabled = false;
   }
 });
 
