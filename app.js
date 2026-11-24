@@ -377,76 +377,113 @@ function drawPreview(){
       const lensH = lensW*(s.h/s.w);
       const bridge = eyeDistance*.16;
       const radius = Math.min(s.r,lensH*.22);
+      const rimWidth = Math.max(2,eyeDistance*.035);
+
+      const templeLeft = point(127);
+      const templeRight = point(356);
 
       ctx.save();
       ctx.translate(centerX,centerY);
       ctx.rotate(angle);
 
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = Math.max(2,eyeDistance*.035);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.shadowColor = "rgba(20,35,30,.20)";
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetY = 1;
+
+      // Verres légèrement teintés, sans masquer les yeux
+      const drawLens = (lensX) => {
+        ctx.beginPath();
+        ctx.roundRect(lensX,-lensH/2,lensW,lensH,radius);
+        ctx.fillStyle = "rgba(205,230,222,0.13)";
+        ctx.fill();
+
+        // Reflet doux dans la partie supérieure du verre
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(lensX,-lensH/2,lensW,lensH,radius);
+        ctx.clip();
+
+        const shine = ctx.createLinearGradient(
+          lensX, -lensH/2, lensX+lensW, lensH/2
+        );
+        shine.addColorStop(0,"rgba(255,255,255,0.22)");
+        shine.addColorStop(0.38,"rgba(255,255,255,0.035)");
+        shine.addColorStop(1,"rgba(255,255,255,0)");
+
+        ctx.fillStyle = shine;
+        ctx.fillRect(lensX,-lensH/2,lensW,lensH);
+        ctx.restore();
+
+        // Contour de la monture
+        ctx.beginPath();
+        ctx.roundRect(lensX,-lensH/2,lensW,lensH,radius);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = rimWidth;
+        ctx.shadowColor = "rgba(20,35,30,.20)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetY = 1;
+        ctx.stroke();
+
+        // Petit éclat discret sur le bord supérieur
+        ctx.beginPath();
+        ctx.moveTo(lensX+lensW*.20,-lensH*.43);
+        ctx.lineTo(lensX+lensW*.42,-lensH*.43);
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = Math.max(1,rimWidth*.32);
+        ctx.shadowBlur = 0;
+        ctx.stroke();
+      };
 
       // Les deux verres
-      roundedRect(
-        ctx,-eyeDistance/2-lensW/2,
-        -lensH/2,lensW,lensH,radius
-      );
+      drawLens(-eyeDistance/2-lensW/2);
+      drawLens(eyeDistance/2-lensW/2);
 
-      roundedRect(
-        ctx,eyeDistance/2-lensW/2,
-        -lensH/2,lensW,lensH,radius
-      );
-
-      // Le pont
+      // Pont central légèrement arrondi
       ctx.beginPath();
       ctx.moveTo(-bridge/2,-lensH*.02);
       ctx.quadraticCurveTo(
         0,-lensH*.16,bridge/2,-lensH*.02
       );
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = rimWidth*.85;
       ctx.stroke();
 
-      // Les branches
-      ctx.beginPath();
-      ctx.moveTo(
-        -eyeDistance/2-lensW/2,-lensH*.12
-      );
-      ctx.lineTo(
-        -eyeDistance/2-lensW*.72,-lensH*.20
-      );
+      // Branches qui partent des coins extérieurs vers les tempes
+      const leftOuterX = -eyeDistance/2-lensW/2;
+      const rightOuterX = eyeDistance/2+lensW/2;
 
-      ctx.moveTo(
-        eyeDistance/2+lensW/2,-lensH*.12
+      const leftTempleX = templeLeft.x-centerX;
+      const rightTempleX = templeRight.x-centerX;
+
+      ctx.beginPath();
+      ctx.moveTo(leftOuterX,-lensH*.22);
+      ctx.quadraticCurveTo(
+        leftOuterX-eyeDistance*.12,-lensH*.20,
+        leftTempleX,-lensH*.05
       );
-      ctx.lineTo(
-        eyeDistance/2+lensW*.72,-lensH*.20
+      ctx.moveTo(rightOuterX,-lensH*.22);
+      ctx.quadraticCurveTo(
+        rightOuterX+eyeDistance*.12,-lensH*.20,
+        rightTempleX,-lensH*.05
       );
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = Math.max(2,rimWidth*.72);
       ctx.stroke();
 
       ctx.restore();
 
-      // Repères des yeux et du nez
+      // Repères des yeux et du nez, discrets pendant le suivi
       const noseBridge = point(168);
 
-      ctx.save();
-
-      [leftEye,rightEye,noseBridge].forEach(p => {
-
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,3.5,0,Math.PI*2);
-        ctx.fillStyle = "#20c879";
-        ctx.fill();
-
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = "#ffffff";
-        ctx.stroke();
-
-      });
-
-      ctx.restore();
+      if(live){
+        ctx.save();
+        [leftEye,rightEye,noseBridge].forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,2.2,0,Math.PI*2);
+          ctx.fillStyle = "rgba(32,200,121,0.65)";
+          ctx.fill();
+        });
+        ctx.restore();
+      }
 
       return;
     }
@@ -467,19 +504,17 @@ function drawPreview(){
   ctx.lineWidth = s.line;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowColor = "rgba(20,35,30,.18)";
-  ctx.shadowBlur = 3;
-  ctx.shadowOffsetY = 1;
 
-  roundedRect(
-    ctx,cx-lensW-bridge/2,
-    cy-lensH/2,lensW,lensH,s.r
-  );
+  ctx.fillStyle = "rgba(205,230,222,0.13)";
+  ctx.beginPath();
+  ctx.roundRect(cx-lensW-bridge/2,cy-lensH/2,lensW,lensH,s.r);
+  ctx.fill();
+  ctx.stroke();
 
-  roundedRect(
-    ctx,cx+bridge/2,
-    cy-lensH/2,lensW,lensH,s.r
-  );
+  ctx.beginPath();
+  ctx.roundRect(cx+bridge/2,cy-lensH/2,lensW,lensH,s.r);
+  ctx.fill();
+  ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(cx-lensW-bridge/2,cy);
@@ -487,10 +522,10 @@ function drawPreview(){
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(cx-lensW*2-bridge/2,cy-2);
+  ctx.moveTo(cx-lensW-bridge/2,cy-2);
   ctx.lineTo(cx-w*.035,cy-h*.008);
 
-  ctx.moveTo(cx+lensW*2+bridge/2,cy-2);
+  ctx.moveTo(cx+lensW+bridge/2,cy-2);
   ctx.lineTo(cx+w*.035,cy-h*.008);
   ctx.stroke();
 
@@ -809,68 +844,4 @@ cameraSwitchButton.addEventListener("click",async () => {
         : "Caméra arrière active · Placez votre visage devant la caméra.";
 
     showToast(
-      nextMode === "user"
-        ? "Caméra avant activée."
-        : "Caméra arrière activée."
-    );
-
-  }catch(err){
-
-    console.error("Erreur changement caméra :",err);
-
-    stopCameraStream();
-
-    try{
-
-      await openCamera(previousMode);
-
-      cameraSwitchButton.hidden = false;
-      cameraSwitchButton.style.display = "flex";
-
-      showToast("Ancienne caméra réactivée.");
-
-    }catch(recoveryError){
-
-      stopCamera();
-
-      showToast("Impossible d'accéder à la caméra. Réessayez.");
-
-    }
-
-  }finally{
-
-    cameraSwitchButton.disabled = false;
-
-  }
-
-});
-
-// Redessiner lors d'un changement de taille
-window.addEventListener("resize",() => {
-
-  if(cameraStream || !photo.hidden) drawPreview();
-
-});
-
-// Menu mobile
-$("#menuToggle").addEventListener("click",() => {
-
-  const nav = $(".desktop-nav");
-  const open = nav.style.display === "flex";
-
-  nav.style.cssText = open
-    ? ""
-    : "display:flex;position:absolute;top:68px;left:0;right:0;background:white;padding:22px;flex-direction:column;gap:18px;box-shadow:0 10px 20px #102b2a12";
-
-});
-
-// Service worker
-if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-
-  window.addEventListener("load",() => {
-
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-
-  });
-
-  }
+     
