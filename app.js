@@ -843,5 +843,46 @@ cameraSwitchButton.addEventListener("click",async () => {
         ? "Caméra avant active · Placez votre visage devant la caméra."
         : "Caméra arrière active · Placez votre visage devant la caméra.";
 
+    
     showToast(
+      nextMode === "user"
+        ? "Caméra avant activée."
+        : "Caméra arrière activée."
+    );
+
+  } catch (error) {
+
+    console.error("Erreur lors du changement de caméra :", error);
+
+    showToast("Impossible de changer de caméra. Réessayez.");
+
+    stopCamera();
+
+  } finally {
+
+    cameraSwitchButton.disabled = false;
+
+  }
+
+});
+
+// Menu mobile
+const menuToggle = $("#menuToggle");
+
+if (menuToggle) {
+  menuToggle.addEventListener("click", () => {
+    document.body.classList.toggle("menu-open");
+  });
+}
+
+// Enregistrement du service worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .catch(error => {
+        console.error("Service worker indisponible :", error);
+      });
+  });
+}
+
      
