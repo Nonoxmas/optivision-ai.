@@ -17,7 +17,6 @@ let photoUrl = null;
 let cameraStream = null;
 let cameraFacingMode = "user";
 
-// Détection du visage
 let faceLandmarker = null;
 let faceDetectionFrame = null;
 let lastFaceLandmarks = null;
@@ -31,16 +30,15 @@ const frameStyles = {
   minimal: {w:.22,h:.12,r:12,line:2,color:"#6d7d73"}
 };
 
-// Bouton discret de changement de caméra
+// Bouton discret pour changer de caméra
 const cameraSwitchButton = document.createElement("button");
 cameraSwitchButton.type = "button";
-cameraSwitchButton.setAttribute("aria-label", "Changer de caméra");
+cameraSwitchButton.setAttribute("aria-label","Changer de caméra");
 cameraSwitchButton.title = "Changer de caméra";
 cameraSwitchButton.innerHTML = `
   <svg viewBox="0 0 24 24" width="25" height="25"
     fill="none" stroke="#111111" stroke-width="2"
-    stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true">
+    stroke-linecap="round" stroke-linejoin="round">
     <path d="M16 3l4 4-4 4"/>
     <path d="M20 7H9a5 5 0 0 0-5 5"/>
     <path d="M8 21l-4-4 4-4"/>
@@ -61,7 +59,6 @@ cameraSwitchButton.style.cssText = `
   align-items:center;
   justify-content:center;
   border:none;
-  outline:none;
   border-radius:50%;
   background:transparent;
   color:#111;
@@ -75,7 +72,9 @@ function showToast(message){
   t.textContent = message;
   t.classList.add("show");
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => t.classList.remove("show"), 2600);
+  showToast.timer = setTimeout(
+    () => t.classList.remove("show"),2600
+  );
 }
 
 // ========================================
@@ -85,7 +84,6 @@ function showToast(message){
 async function getFaceLandmarker(){
 
   if(faceLandmarker) return faceLandmarker;
-
   if(faceModuleLoading) return faceModuleLoading;
 
   faceModuleLoading = (async () => {
@@ -94,7 +92,7 @@ async function getFaceLandmarker(){
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm"
     );
 
-    const { FilesetResolver, FaceLandmarker } = vision;
+    const {FilesetResolver,FaceLandmarker} = vision;
 
     const fileset = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
@@ -103,13 +101,13 @@ async function getFaceLandmarker(){
     faceLandmarker = await FaceLandmarker.createFromOptions(
       fileset,
       {
-        baseOptions: {
+        baseOptions:{
           modelAssetPath:
             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "CPU"
+          delegate:"CPU"
         },
-        runningMode: "IMAGE",
-        numFaces: 1
+        runningMode:"IMAGE",
+        numFaces:1
       }
     );
 
@@ -125,22 +123,19 @@ async function getFaceLandmarker(){
   }
 }
 
-// Détecter un visage sur une photo importée
+// Analyse de la photo importée
 async function detectFaceInPhoto(){
 
   if(photo.hidden || !photo.naturalWidth) return;
 
   lastFaceLandmarks = null;
-
   statusText.textContent = "Analyse du visage en cours...";
 
   try{
 
     const detector = await getFaceLandmarker();
 
-    await detector.setOptions({
-      runningMode: "IMAGE"
-    });
+    await detector.setOptions({runningMode:"IMAGE"});
 
     const result = detector.detect(photo);
 
@@ -149,9 +144,14 @@ async function detectFaceInPhoto(){
       lastFaceLandmarks = result.faceLandmarks[0];
 
       statusText.textContent =
-        "Visage détecté ! Préparation de l'essayage.";
+        "Visage détecté ! Les lunettes sont positionnées sur votre visage.";
+
+      drawPreview();
 
     }else{
+
+      lastFaceLandmarks = null;
+      drawPreview();
 
       statusText.textContent =
         "Aucun visage détecté. Essayez une photo de face.";
@@ -160,7 +160,7 @@ async function detectFaceInPhoto(){
 
   }catch(error){
 
-    console.error("Erreur de détection du visage :", error);
+    console.error("Erreur de détection du visage :",error);
 
     statusText.textContent =
       "Détection indisponible. Vérifiez votre connexion internet.";
@@ -168,7 +168,7 @@ async function detectFaceInPhoto(){
   }
 }
 
-// Détecter le visage en direct avec la caméra
+// Détection en direct avec la caméra
 async function startFaceDetection(){
 
   if(faceDetectionFrame){
@@ -185,9 +185,7 @@ async function startFaceDetection(){
 
     if(!cameraStream || video.paused) return;
 
-    await detector.setOptions({
-      runningMode: "VIDEO"
-    });
+    await detector.setOptions({runningMode:"VIDEO"});
 
     function detectLoop(){
 
@@ -198,14 +196,13 @@ async function startFaceDetection(){
 
       const now = performance.now();
 
-      // Limiter la détection pour préserver les performances du téléphone
       if(now - lastDetectionTime >= 150){
 
         lastDetectionTime = now;
 
         try{
 
-          const result = detector.detectForVideo(video, now);
+          const result = detector.detectForVideo(video,now);
 
           if(result.faceLandmarks && result.faceLandmarks.length > 0){
 
@@ -224,9 +221,7 @@ async function startFaceDetection(){
           }
 
         }catch(error){
-
-          console.error("Erreur pendant la détection vidéo :", error);
-
+          console.error("Erreur détection vidéo :",error);
         }
       }
 
@@ -237,7 +232,7 @@ async function startFaceDetection(){
 
   }catch(error){
 
-    console.error("Impossible de démarrer la détection :", error);
+    console.error("Impossible de démarrer la détection :",error);
 
     statusText.textContent =
       "Détection indisponible. Vérifiez votre connexion.";
@@ -245,7 +240,6 @@ async function startFaceDetection(){
   }
 }
 
-// Arrêter la détection en cours
 function stopFaceDetection(){
 
   if(faceDetectionFrame){
@@ -257,18 +251,22 @@ function stopFaceDetection(){
 }
 
 // ========================================
-// FIN DE LA DÉTECTION DU VISAGE
+// AFFICHAGE ET POSITIONNEMENT DES LUNETTES
 // ========================================
 
 function selectFrame(name){
+
   currentFrame = name;
+
   $$(".frame-option").forEach(b =>
-    b.classList.toggle("selected", b.dataset.frame === name)
+    b.classList.toggle("selected",b.dataset.frame === name)
   );
+
   if(!photo.hidden) drawPreview();
 }
 
 function roundedRect(c,x,y,w,h,r){
+
   c.beginPath();
   c.roundRect(x,y,w,h,r);
   c.stroke();
@@ -282,30 +280,140 @@ function drawPreview(){
   const rect = area.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
 
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  canvas.style.width = rect.width + "px";
-  canvas.style.height = rect.height + "px";
+  canvas.width = Math.round(rect.width*dpr);
+  canvas.height = Math.round(rect.height*dpr);
+  canvas.style.width = rect.width+"px";
+  canvas.style.height = rect.height+"px";
 
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,rect.width,rect.height);
 
   const scale = Math.min(
-    rect.width / photo.naturalWidth,
-    rect.height / photo.naturalHeight
+    rect.width/photo.naturalWidth,
+    rect.height/photo.naturalHeight
   );
 
-  const w = photo.naturalWidth * scale;
-  const h = photo.naturalHeight * scale;
-  const x = (rect.width - w) / 2;
-  const y = (rect.height - h) / 2;
+  const w = photo.naturalWidth*scale;
+  const h = photo.naturalHeight*scale;
+  const x = (rect.width-w)/2;
+  const y = (rect.height-h)/2;
 
   const s = frameStyles[currentFrame];
-  const cx = x + w / 2;
-  const cy = y + h * .39;
-  const lensW = w * s.w;
-  const lensH = h * s.h;
-  const bridge = w * .035;
+
+  // Positionnement selon les yeux détectés
+  if(lastFaceLandmarks && lastFaceLandmarks.length > 263){
+
+    const point = (index) => ({
+      x:x+lastFaceLandmarks[index].x*w,
+      y:y+lastFaceLandmarks[index].y*h
+    });
+
+    const average = (a,b) => ({
+      x:(a.x+b.x)/2,
+      y:(a.y+b.y)/2
+    });
+
+    const eyeA = average(point(33),point(133));
+    const eyeB = average(point(362),point(263));
+
+    const leftEye = eyeA.x < eyeB.x ? eyeA : eyeB;
+    const rightEye = eyeA.x < eyeB.x ? eyeB : eyeA;
+
+    const dx = rightEye.x-leftEye.x;
+    const dy = rightEye.y-leftEye.y;
+    const eyeDistance = Math.hypot(dx,dy);
+    const angle = Math.atan2(dy,dx);
+
+    if(eyeDistance > 8){
+
+      const centerX = (leftEye.x+rightEye.x)/2;
+      const centerY = (leftEye.y+rightEye.y)/2;
+
+      const lensW = eyeDistance*.58;
+      const lensH = lensW*(s.h/s.w);
+      const bridge = eyeDistance*.16;
+      const radius = Math.min(s.r,lensH*.22);
+
+      ctx.save();
+      ctx.translate(centerX,centerY);
+      ctx.rotate(angle);
+
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = Math.max(2,eyeDistance*.035);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = "rgba(20,35,30,.20)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+
+      // Les deux verres
+      roundedRect(
+        ctx,-eyeDistance/2-lensW/2,
+        -lensH/2,lensW,lensH,radius
+      );
+
+      roundedRect(
+        ctx,eyeDistance/2-lensW/2,
+        -lensH/2,lensW,lensH,radius
+      );
+
+      // Le pont
+      ctx.beginPath();
+      ctx.moveTo(-bridge/2,-lensH*.02);
+      ctx.quadraticCurveTo(
+        0,-lensH*.16,bridge/2,-lensH*.02
+      );
+      ctx.stroke();
+
+      // Les branches
+      ctx.beginPath();
+      ctx.moveTo(
+        -eyeDistance/2-lensW/2,-lensH*.12
+      );
+      ctx.lineTo(
+        -eyeDistance/2-lensW*.72,-lensH*.20
+      );
+
+      ctx.moveTo(
+        eyeDistance/2+lensW/2,-lensH*.12
+      );
+      ctx.lineTo(
+        eyeDistance/2+lensW*.72,-lensH*.20
+      );
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Repères verts des yeux et du nez
+      const noseBridge = point(168);
+
+      ctx.save();
+
+      [leftEye,rightEye,noseBridge].forEach(p => {
+
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,3.5,0,Math.PI*2);
+        ctx.fillStyle = "#20c879";
+        ctx.fill();
+
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+      });
+
+      ctx.restore();
+
+      return;
+    }
+  }
+
+  // Position de secours si le visage n'est pas détecté
+  const cx = x+w/2;
+  const cy = y+h*.39;
+  const lensW = w*s.w;
+  const lensH = h*s.h;
+  const bridge = w*.035;
 
   ctx.save();
   ctx.strokeStyle = s.color;
@@ -316,8 +424,15 @@ function drawPreview(){
   ctx.shadowBlur = 3;
   ctx.shadowOffsetY = 1;
 
-  roundedRect(ctx,cx-lensW-bridge/2,cy-lensH/2,lensW,lensH,s.r);
-  roundedRect(ctx,cx+bridge/2,cy-lensH/2,lensW,lensH,s.r);
+  roundedRect(
+    ctx,cx-lensW-bridge/2,
+    cy-lensH/2,lensW,lensH,s.r
+  );
+
+  roundedRect(
+    ctx,cx+bridge/2,
+    cy-lensH/2,lensW,lensH,s.r
+  );
 
   ctx.beginPath();
   ctx.moveTo(cx-lensW-bridge/2,cy);
@@ -327,6 +442,7 @@ function drawPreview(){
   ctx.beginPath();
   ctx.moveTo(cx-lensW*2-bridge/2,cy-2);
   ctx.lineTo(cx-w*.035,cy-h*.008);
+
   ctx.moveTo(cx+lensW*2+bridge/2,cy-2);
   ctx.lineTo(cx+w*.035,cy-h*.008);
   ctx.stroke();
@@ -334,7 +450,10 @@ function drawPreview(){
   ctx.restore();
 }
 
-// Arrêter uniquement le flux vidéo
+// ========================================
+// GESTION DE LA CAMÉRA
+// ========================================
+
 function stopCameraStream(){
 
   stopFaceDetection();
@@ -350,7 +469,6 @@ function stopCameraStream(){
   }
 }
 
-// Fermer complètement la caméra
 function stopCamera(){
 
   stopCameraStream();
@@ -366,7 +484,6 @@ function stopCamera(){
   cameraSwitchButton.style.display = "none";
 }
 
-// Ouvrir la caméra choisie
 async function openCamera(facingMode){
 
   const area = $("#previewArea");
@@ -376,10 +493,8 @@ async function openCamera(facingMode){
   }
 
   cameraStream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: {ideal: facingMode}
-    },
-    audio: false
+    video:{facingMode:{ideal:facingMode}},
+    audio:false
   });
 
   video.srcObject = cameraStream;
@@ -390,7 +505,8 @@ async function openCamera(facingMode){
   video.style.width = "100%";
   video.style.height = "100%";
   video.style.objectFit = "contain";
-  video.style.transform = facingMode === "user" ? "scaleX(-1)" : "none";
+  video.style.transform =
+    facingMode === "user" ? "scaleX(-1)" : "none";
   video.style.zIndex = "5";
   video.style.background = "#101816";
 
@@ -402,11 +518,13 @@ async function openCamera(facingMode){
 
   cameraFacingMode = facingMode;
 
-  // Lancer la reconnaissance du visage
   startFaceDetection();
 }
 
-// Charger une photo
+// ========================================
+// IMPORTATION D'UNE PHOTO
+// ========================================
+
 function loadPhoto(file){
 
   if(!file || !file.type.startsWith("image/")) return;
@@ -424,32 +542,33 @@ function loadPhoto(file){
     controls.hidden = false;
     canvas.hidden = false;
 
-    statusText.textContent = "Photo prête · " + file.name;
+    statusText.textContent = "Photo prête · "+file.name;
 
     drawPreview();
-
-    // Analyser automatiquement le visage
     detectFaceInPhoto();
   };
 
   photo.onerror = () => {
+
     statusText.textContent = "Impossible de lire cette photo.";
     showToast("Cette image ne peut pas être ouverte.");
+
   };
 
   photo.src = photoUrl;
 }
 
-photoInput.addEventListener("change", e => {
+photoInput.addEventListener("change",e => {
   loadPhoto(e.target.files[0]);
 });
 
+// Sélection des montures
 $$(".frame-option").forEach(b =>
-  b.addEventListener("click", () => selectFrame(b.dataset.frame))
+  b.addEventListener("click",() => selectFrame(b.dataset.frame))
 );
 
 $$(".try-product").forEach(b =>
-  b.addEventListener("click", () => {
+  b.addEventListener("click",() => {
 
     selectFrame(b.dataset.select);
 
@@ -460,7 +579,8 @@ $$(".try-product").forEach(b =>
   })
 );
 
-$("#resetPhoto").addEventListener("click", () => {
+// Réinitialiser la photo
+$("#resetPhoto").addEventListener("click",() => {
 
   stopCamera();
 
@@ -480,7 +600,8 @@ $("#resetPhoto").addEventListener("click", () => {
 
 });
 
-$("#downloadLook").addEventListener("click", () => {
+// Télécharger le résultat
+$("#downloadLook").addEventListener("click",() => {
 
   if(photo.hidden) return;
 
@@ -508,8 +629,11 @@ $("#downloadLook").addEventListener("click", () => {
 
 });
 
-// Premier clic : ouvrir la caméra avant
-cameraButton.addEventListener("click", async () => {
+// ========================================
+// BOUTON DE LA CAMÉRA
+// ========================================
+
+cameraButton.addEventListener("click",async () => {
 
   if(cameraStream){
 
@@ -585,7 +709,7 @@ cameraButton.addEventListener("click", async () => {
 
   }catch(err){
 
-    console.error("Erreur caméra :", err);
+    console.error("Erreur caméra :",err);
 
     stopCamera();
 
@@ -599,8 +723,8 @@ cameraButton.addEventListener("click", async () => {
 
 });
 
-// Passer de la caméra avant à la caméra arrière
-cameraSwitchButton.addEventListener("click", async () => {
+// Changer de caméra
+cameraSwitchButton.addEventListener("click",async () => {
 
   if(!cameraStream) return;
 
@@ -633,7 +757,7 @@ cameraSwitchButton.addEventListener("click", async () => {
 
   }catch(err){
 
-    console.error("Erreur changement caméra :", err);
+    console.error("Erreur changement caméra :",err);
 
     stopCameraStream();
 
@@ -662,16 +786,17 @@ cameraSwitchButton.addEventListener("click", async () => {
 
 });
 
-window.addEventListener("resize", () => {
+// Redessiner lors d'un changement de taille
+window.addEventListener("resize",() => {
 
   if(!photo.hidden) drawPreview();
 
 });
 
-$("#menuToggle").addEventListener("click", () => {
+// Menu mobile
+$("#menuToggle").addEventListener("click",() => {
 
   const nav = $(".desktop-nav");
-
   const open = nav.style.display === "flex";
 
   nav.style.cssText = open
@@ -680,9 +805,10 @@ $("#menuToggle").addEventListener("click", () => {
 
 });
 
+// Service worker
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 
-  window.addEventListener("load", () => {
+  window.addEventListener("load",() => {
 
     navigator.serviceWorker.register("./sw.js").catch(() => {});
 
