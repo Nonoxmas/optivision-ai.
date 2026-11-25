@@ -236,7 +236,7 @@ async function startFaceDetection() {
 
       const now = performance.now();
 
-      if (now - lastDetectionTime >= 150) {
+      if (now - lastDetectionTime >= 70) {
         lastDetectionTime = now;
 
         try {
@@ -245,7 +245,7 @@ async function startFaceDetection() {
           if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             lastFaceLandmarks = smoothFaceLandmarks(
               result.faceLandmarks[0],
-              0.16
+              0.48
             );
 
             statusText.textContent =
@@ -333,15 +333,13 @@ function drawPreview() {
   if (!img || !bounds) return;
 
   const drawFrame = (centerX, centerY, frameWidth, angle = 0) => {
-    // On utilise la partie centrale du PNG pour isoler la face avant.
-    // Les branches latérales ne doivent pas traverser les yeux.
-    const frontX = bounds.x + bounds.width * 0.18;
-    const frontWidth = bounds.width * 0.64;
-    const frameHeight = frameWidth * bounds.height / frontWidth;
+    // Affiche toute la face avant de la monture, sans couper les côtés.
+    const frameHeight = frameWidth * bounds.height / bounds.width;
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
-    ctx.drawImage(img, frontX, bounds.y, frontWidth, bounds.height,
+    ctx.drawImage(img,
+      bounds.x, bounds.y, bounds.width, bounds.height,
       -frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight);
     ctx.restore();
   };
@@ -362,7 +360,7 @@ function drawPreview() {
     if (eyeDistance > 8) {
       drawFrame((leftEye.x+rightEye.x)/2,
         (leftEye.y+rightEye.y)/2 + eyeDistance*0.035,
-        eyeDistance*2.05, Math.atan2(dy,dx));
+        eyeDistance*1.82, Math.atan2(dy,dx));
       return;
     }
   }
