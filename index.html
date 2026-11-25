@@ -7,7 +7,7 @@
   <meta name="description" content="OptiVision AI - Essayez vos lunettes virtuellement.">
   <title>OptiVision AI | Essayage virtuel</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <header class="topbar">
@@ -60,7 +60,7 @@
       <div class="try-layout">
         <div class="try-stage">
           <div class="stage-top"><span><i class="live-dot"></i> STUDIO D'ESSAYAGE</span><span class="stage-secure">◈ Aperçu privé sur cet appareil</span></div>
-          <div class="preview-area" id="previewArea">
+          <div class="preview-area" id="previewArea" style="height:340px;min-height:340px;max-height:340px;overflow:hidden;position:relative">
             <div class="empty-preview" id="emptyPreview">
               <div class="upload-symbol">＋</div>
               <h3>Votre visage, votre style.</h3>
@@ -77,7 +77,7 @@
             </div>
           </div>
           <div class="stage-bottom">
-            <button class="camera-button" id="cameraButton">◎ Utiliser ma caméra</button>
+            <button class="camera-button" id="cameraButton" style="display:inline-flex!important;position:relative!important;z-index:30!important;min-height:42px!important;align-items:center!important;justify-content:center!important;pointer-events:auto!important">◎ Utiliser ma caméra</button>
             <span id="cameraStatus">Aucune photo sélectionnée</span>
           </div>
           <video id="cameraVideo" autoplay playsinline hidden></video>
@@ -85,10 +85,10 @@
         <aside class="try-sidebar">
           <div class="sidebar-title"><div><span class="eyebrow">SÉLECTION</span><h3>Choisissez votre monture</h3></div><span class="step-count">01 <i>/ 02</i></span></div>
           <div class="frame-list" id="frameList">
-            <button class="frame-option selected" data-frame="classic"><span class="frame-visual frame-photo"><img src="assets/01_monture_classique_rectangulaire.png" alt="Monture classique rectangulaire"></span><span><b>Épure classique</b><small>Élégante · Intemporelle</small></span><span class="check">✓</span></button>
-            <button class="frame-option" data-frame="round"><span class="frame-visual frame-photo"><img src="assets/02_monture_ronde_doree.png" alt="Monture ronde dorée"></span><span><b>Ronde signature</b><small>Créative · Distinctive</small></span><span class="check">✓</span></button>
-            <button class="frame-option" data-frame="bold"><span class="frame-visual frame-photo"><img src="assets/03_monture_epaisse_noire.png" alt="Monture épaisse noire"></span><span><b>Audace moderne</b><small>Affirmée · Contemporaine</small></span><span class="check">✓</span></button>
-            <button class="frame-option" data-frame="minimal"><span class="frame-visual frame-photo"><img src="assets/04_monture_fine_minimaliste.png" alt="Monture fine minimaliste"></span><span><b>Minimal chic</b><small>Légère · Discrète</small></span><span class="check">✓</span></button>
+            <button class="frame-option selected" data-frame="classic"><span class="frame-visual frame-photo" style="display:flex!important;flex:0 0 58px!important;width:58px!important;min-width:58px!important;height:38px!important;max-height:38px!important;overflow:hidden!important;align-items:center!important;justify-content:center!important"><img src="assets/01_monture_classique_rectangulaire.png" alt="Monture classique rectangulaire" style="display:block!important;width:54px!important;height:34px!important;max-width:54px!important;max-height:34px!important;object-fit:contain!important;pointer-events:none!important"></span><span><b>Épure classique</b><small>Élégante · Intemporelle</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="round"><span class="frame-visual frame-photo" style="display:flex!important;flex:0 0 58px!important;width:58px!important;min-width:58px!important;height:38px!important;max-height:38px!important;overflow:hidden!important;align-items:center!important;justify-content:center!important"><img src="assets/02_monture_ronde_doree.png" alt="Monture ronde dorée" style="display:block!important;width:54px!important;height:34px!important;max-width:54px!important;max-height:34px!important;object-fit:contain!important;pointer-events:none!important"></span><span><b>Ronde signature</b><small>Créative · Distinctive</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="bold"><span class="frame-visual frame-photo" style="display:flex!important;flex:0 0 58px!important;width:58px!important;min-width:58px!important;height:38px!important;max-height:38px!important;overflow:hidden!important;align-items:center!important;justify-content:center!important"><img src="assets/03_monture_epaisse_noire.png" alt="Monture épaisse noire" style="display:block!important;width:54px!important;height:34px!important;max-width:54px!important;max-height:34px!important;object-fit:contain!important;pointer-events:none!important"></span><span><b>Audace moderne</b><small>Affirmée · Contemporaine</small></span><span class="check">✓</span></button>
+            <button class="frame-option" data-frame="minimal"><span class="frame-visual frame-photo" style="display:flex!important;flex:0 0 58px!important;width:58px!important;min-width:58px!important;height:38px!important;max-height:38px!important;overflow:hidden!important;align-items:center!important;justify-content:center!important"><img src="assets/04_monture_fine_minimaliste.png" alt="Monture fine minimaliste" style="display:block!important;width:54px!important;height:34px!important;max-width:54px!important;max-height:34px!important;object-fit:contain!important;pointer-events:none!important"></span><span><b>Minimal chic</b><small>Légère · Discrète</small></span><span class="check">✓</span></button>
           </div>
           <div class="sidebar-tip"><span>✦</span><p><b>Astuce</b><br>Pour un meilleur aperçu, choisissez une photo de face, avec le visage bien éclairé.</p></div>
           <a class="button button-dark full-button" href="#catalogue">Voir le catalogue complet <span>→</span></a>
@@ -119,6 +119,6 @@
   </main>
   <footer><a class="brand footer-brand" href="#"><span class="brand-mark">O</span><span>OptiVision <b>AI</b></span></a><span>© 2026 OptiVision AI · Une expérience Bfamily</span><a href="#essayage">Retour en haut ↑</a></footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
