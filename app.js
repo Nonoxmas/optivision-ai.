@@ -43,37 +43,44 @@ function smoothFaceLandmarks(newLandmarks, factor = 0.35) {
   return smoothedFaceLandmarks;
 }
 
-// LES QUATRE MODÈLES DE MONTURES
-const frameStyles = {
-  classic: {
-    w: .22,
-    h: .115,
-    r: 12,
-    line: 7,
-    color: "#263d37"
-  },
-  round: {
-    w: .205,
-    h: .205,
-    r: 50,
-    line: 6,
-    color: "#98713f"
-  },
-  bold: {
-    w: .225,
-    h: .13,
-    r: 8,
-    line: 12,
-    color: "#171c1b"
-  },
-  minimal: {
-    w: .22,
-    h: .12,
-    r: 12,
-    line: 2,
-    color: "#899b91"
-  }
+// Images réelles des quatre montures
+const frameImages = {
+  classic: "assets/01_monture_classique_rectangulaire.png",
+  round: "assets/02_monture_ronde_doree.png",
+  bold: "assets/03_monture_epaisse_noire.png",
+  minimal: "assets/04_monture_fine_minimaliste.png"
 };
+const loadedFrames = {};
+const frameBounds = {};
+
+Object.entries(frameImages).forEach(([name, src]) => {
+  const img = new Image();
+  img.onload = () => {
+    loadedFrames[name] = img;
+    // Recadre automatiquement les marges transparentes du PNG.
+    const temp = document.createElement("canvas");
+    temp.width = img.naturalWidth;
+    temp.height = img.naturalHeight;
+    const tempCtx = temp.getContext("2d", {willReadFrequently: true});
+    tempCtx.drawImage(img, 0, 0);
+    const pixels = tempCtx.getImageData(0, 0, temp.width, temp.height).data;
+    let minX = temp.width, minY = temp.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < temp.height; y++) {
+      for (let x = 0; x < temp.width; x++) {
+        if (pixels[(y * temp.width + x) * 4 + 3] > 12) {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        }
+      }
+    }
+    frameBounds[name] = maxX >= minX && maxY >= minY
+      ? {x:minX, y:minY, width:maxX-minX+1, height:maxY-minY+1}
+      : {x:0, y:0, width:img.naturalWidth, height:img.naturalHeight};
+    if (cameraStream || !photo.hidden) drawPreview();
+  };
+  img.onerror = () => console.error("Monture impossible à charger :", src);
+  img.src = src;
+});
 
 // Bouton pour changer de caméra
 const cameraSwitchButton = document.createElement("button");
@@ -297,21 +304,17 @@ function selectFrame(name) {
 
 function drawPreview() {
   const live = !!cameraStream;
-
   const sourceWidth = live ? video.videoWidth : photo.naturalWidth;
   const sourceHeight = live ? video.videoHeight : photo.naturalHeight;
-
   if ((!live && photo.hidden) || !sourceWidth || !sourceHeight) return;
 
   const area = $("#previewArea");
   const rect = area.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-
   canvas.width = Math.round(rect.width * dpr);
   canvas.height = Math.round(rect.height * dpr);
   canvas.style.width = rect.width + "px";
   canvas.style.height = rect.height + "px";
-
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -320,220 +323,50 @@ function drawPreview() {
     ctx.scale(-1, 1);
   }
 
-  const scale = Math.min(
-    rect.width / sourceWidth,
-    rect.height / sourceHeight
-  );
-
+  const scale = Math.min(rect.width / sourceWidth, rect.height / sourceHeight);
   const w = sourceWidth * scale;
   const h = sourceHeight * scale;
   const x = (rect.width - w) / 2;
   const y = (rect.height - h) / 2;
+  const img = loadedFrames[currentFrame];
+  const bounds = frameBounds[currentFrame];
+  if (!img || !bounds) return;
 
-  const s = frameStyles[currentFrame];
+  const drawFrame = (centerX, centerY, frameWidth, angle = 0) => {
+    const frameHeight = frameWidth * bounds.height / bounds.width;
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(angle);
+    ctx.drawImage(img, bounds.x, bounds.y, bounds.width, bounds.height,
+      -frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight);
+    ctx.restore();
+  };
 
   if (lastFaceLandmarks && lastFaceLandmarks.length > 263) {
-    const point = (index) => ({
+    const point = index => ({
       x: x + lastFaceLandmarks[index].x * w,
       y: y + lastFaceLandmarks[index].y * h
     });
-
-    const average = (a, b) => ({
-      x: (a.x + b.x) / 2,
-      y: (a.y + b.y) / 2
-    });
-
+    const average = (a, b) => ({x:(a.x+b.x)/2, y:(a.y+b.y)/2});
     const eyeA = average(point(33), point(133));
     const eyeB = average(point(362), point(263));
-
     const leftEye = eyeA.x < eyeB.x ? eyeA : eyeB;
     const rightEye = eyeA.x < eyeB.x ? eyeB : eyeA;
-
     const dx = rightEye.x - leftEye.x;
     const dy = rightEye.y - leftEye.y;
     const eyeDistance = Math.hypot(dx, dy);
-    const angle = Math.atan2(dy, dx);
-
     if (eyeDistance > 8) {
-      const centerX = (leftEye.x + rightEye.x) / 2;
-      const centerY = (leftEye.y + rightEye.y) / 2;
-
-      const lensW = eyeDistance * 0.58;
-      const lensH = lensW * (s.h / s.w);
-      const bridge = eyeDistance * 0.16;
-      const radius = Math.min(s.r, lensH * 0.22);
-      const rimWidth = Math.max(2, eyeDistance * s.line / 200);
-
-      const templeLeft = point(127);
-      const templeRight = point(356);
-
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate(angle);
-
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      const drawLens = (lensX) => {
-        ctx.beginPath();
-        ctx.roundRect(lensX, -lensH / 2, lensW, lensH, radius);
-        ctx.fillStyle = "rgba(205,230,222,0.13)";
-        ctx.fill();
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(lensX, -lensH / 2, lensW, lensH, radius);
-        ctx.clip();
-
-        const shine = ctx.createLinearGradient(
-          lensX, -lensH / 2, lensX + lensW, lensH / 2
-        );
-
-        shine.addColorStop(0, "rgba(255,255,255,0.22)");
-        shine.addColorStop(0.38, "rgba(255,255,255,0.035)");
-        shine.addColorStop(1, "rgba(255,255,255,0)");
-
-        ctx.fillStyle = shine;
-        ctx.fillRect(lensX, -lensH / 2, lensW, lensH);
-        ctx.restore();
-
-        ctx.beginPath();
-        ctx.roundRect(lensX, -lensH / 2, lensW, lensH, radius);
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth = rimWidth;
-        ctx.shadowColor = "rgba(20,35,30,.20)";
-        ctx.shadowBlur = 3;
-        ctx.shadowOffsetY = 1;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(lensX + lensW * 0.20, -lensH * 0.43);
-        ctx.lineTo(lensX + lensW * 0.42, -lensH * 0.43);
-        ctx.strokeStyle = "rgba(255,255,255,0.55)";
-        ctx.lineWidth = Math.max(1, rimWidth * 0.32);
-        ctx.shadowBlur = 0;
-        ctx.stroke();
-      };
-
-      drawLens(-eyeDistance / 2 - lensW / 2);
-      drawLens(eyeDistance / 2 - lensW / 2);
-
-      ctx.beginPath();
-      ctx.moveTo(-bridge / 2, -lensH * 0.02);
-      ctx.quadraticCurveTo(
-        0, -lensH * 0.16,
-        bridge / 2, -lensH * 0.02
-      );
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = rimWidth * 0.85;
-      ctx.stroke();
-
-      const leftOuterX = -eyeDistance / 2 - lensW / 2;
-      const rightOuterX = eyeDistance / 2 + lensW / 2;
-
-      const leftTempleX = templeLeft.x - centerX;
-      const rightTempleX = templeRight.x - centerX;
-
-      ctx.beginPath();
-      ctx.moveTo(leftOuterX, -lensH * 0.22);
-      ctx.quadraticCurveTo(
-        leftOuterX - eyeDistance * 0.12,
-        -lensH * 0.20,
-        leftTempleX,
-        -lensH * 0.05
-      );
-
-      ctx.moveTo(rightOuterX, -lensH * 0.22);
-      ctx.quadraticCurveTo(
-        rightOuterX + eyeDistance * 0.12,
-        -lensH * 0.20,
-        rightTempleX,
-        -lensH * 0.05
-      );
-
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = Math.max(2, rimWidth * 0.72);
-      ctx.stroke();
-
-      ctx.restore();
-
-      const noseBridge = point(168);
-
-      if (live) {
-        ctx.save();
-
-        [leftEye, rightEye, noseBridge].forEach(p => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(32,200,121,0.65)";
-          ctx.fill();
-        });
-
-        ctx.restore();
-      }
-
+      drawFrame((leftEye.x+rightEye.x)/2,
+        (leftEye.y+rightEye.y)/2 + eyeDistance*0.035,
+        eyeDistance*1.55, Math.atan2(dy,dx));
       return;
     }
   }
 
   if (live) return;
-
-  // Positionnement de secours sur une photo sans détection
-  const cx = x + w / 2;
-  const cy = y + h * 0.39;
-  const lensW = w * s.w;
-  const lensH = h * s.h;
-  const bridge = w * 0.035;
-
-  ctx.save();
-  ctx.strokeStyle = s.color;
-  ctx.lineWidth = s.line;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.fillStyle = "rgba(205,230,222,0.13)";
-
-  ctx.beginPath();
-  ctx.roundRect(
-    cx - lensW - bridge / 2,
-    cy - lensH / 2,
-    lensW,
-    lensH,
-    s.r
-  );
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.roundRect(
-    cx + bridge / 2,
-    cy - lensH / 2,
-    lensW,
-    lensH,
-    s.r
-  );
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(cx - lensW - bridge / 2, cy);
-  ctx.lineTo(cx + bridge / 2 + lensW, cy);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(cx - lensW - bridge / 2, cy - 2);
-  ctx.lineTo(cx - w * 0.035, cy - h * 0.008);
-
-  ctx.moveTo(cx + lensW + bridge / 2, cy - 2);
-  ctx.lineTo(cx + w * 0.035, cy - h * 0.008);
-  ctx.stroke();
-
-  ctx.restore();
+  // Position de secours sur une photo si la détection du visage échoue.
+  drawFrame(x+w/2, y+h*0.39, w*0.38, 0);
 }
-
-// ========================================
-// GESTION DE LA CAMÉRA
-// ========================================
 
 function stopCameraStream() {
   stopFaceDetection();
