@@ -245,7 +245,7 @@ async function startFaceDetection() {
           if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             lastFaceLandmarks = smoothFaceLandmarks(
               result.faceLandmarks[0],
-              0.35
+              0.16
             );
 
             statusText.textContent =
@@ -333,11 +333,15 @@ function drawPreview() {
   if (!img || !bounds) return;
 
   const drawFrame = (centerX, centerY, frameWidth, angle = 0) => {
-    const frameHeight = frameWidth * bounds.height / bounds.width;
+    // On utilise la partie centrale du PNG pour isoler la face avant.
+    // Les branches latérales ne doivent pas traverser les yeux.
+    const frontX = bounds.x + bounds.width * 0.18;
+    const frontWidth = bounds.width * 0.64;
+    const frameHeight = frameWidth * bounds.height / frontWidth;
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
-    ctx.drawImage(img, bounds.x, bounds.y, bounds.width, bounds.height,
+    ctx.drawImage(img, frontX, bounds.y, frontWidth, bounds.height,
       -frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight);
     ctx.restore();
   };
@@ -358,14 +362,14 @@ function drawPreview() {
     if (eyeDistance > 8) {
       drawFrame((leftEye.x+rightEye.x)/2,
         (leftEye.y+rightEye.y)/2 + eyeDistance*0.035,
-        eyeDistance*1.55, Math.atan2(dy,dx));
+        eyeDistance*2.05, Math.atan2(dy,dx));
       return;
     }
   }
 
   if (live) return;
   // Position de secours sur une photo si la détection du visage échoue.
-  drawFrame(x+w/2, y+h*0.39, w*0.38, 0);
+  drawFrame(x+w/2, y+h*0.39, w*0.48, 0);
 }
 
 function stopCameraStream() {
