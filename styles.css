@@ -10,3 +10,38 @@
 @media(max-width:800px){.topbar{height:68px;padding:0 5%}.desktop-nav,.nav-cta{display:none}.menu-toggle{display:block}.hero{padding:55px 7% 45px;grid-template-columns:1fr;gap:20px}.hero h1{font-size:49px}.hero-art{min-height:360px}.hero-card{height:340px;width:300px}.portrait-placeholder{height:270px}.portrait-head{transform:scale(.85);transform-origin:bottom center}.tag-top{right:0;top:30px}.tag-bottom{left:0;bottom:24px}.stats-strip{gap:18px;justify-content:space-around;padding:20px 4%}.stats-strip div{gap:7px}.stats-strip strong{font-size:20px}.stats-strip span{font-size:8px;max-width:82px}.section{padding:62px 6%}.section-heading{display:block}.section-heading h2{font-size:36px}.section-heading>p{margin-top:15px}.try-layout{grid-template-columns:1fr}.preview-area{height:340px}.try-sidebar{padding:19px}.catalog-section{padding-top:20px}.catalog-grid{grid-template-columns:1fr;gap:14px}.product-image{height:210px}.how-inner{grid-template-columns:1fr;gap:20px}.how-inner h2{font-size:37px}.final-cta{padding:42px 7%;display:block}.final-cta h2{font-size:37px}.final-cta .button{margin-top:24px}footer{padding:22px 6%;gap:12px;flex-wrap:wrap}footer>span{order:3;width:100%}}
 @media(min-width:801px) and (max-width:1100px){.hero{padding-left:6%;padding-right:6%}.section{padding-left:6%;padding-right:6%}.try-layout{grid-template-columns:1.2fr .8fr}.frame-option{gap:7px;padding:8px}.frame-visual{width:44px}}
 
+
+
+/* Miniatures photo : taille contenue et clics toujours transmis au bouton */
+.frame-option .frame-photo{
+  flex:0 0 62px;
+  width:62px;
+  height:42px;
+  min-width:62px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px;
+  background:#f5f7f3;
+  border-radius:4px;
+}
+.frame-option .frame-photo:after{display:none}
+.frame-option .frame-photo img{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  pointer-events:none;
+}
+.product-image .product-frame-image{
+  display:block;
+  width:min(76%,260px);
+  height:138px;
+  max-width:100%;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 8px 7px #263b3222);
+}
