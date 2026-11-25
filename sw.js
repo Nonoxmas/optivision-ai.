@@ -1,5 +1,5 @@
 
-const CACHE = "optivision-v3";
+const CACHE = "optivision-v4";
 
 const ASSETS = [
   "./",
