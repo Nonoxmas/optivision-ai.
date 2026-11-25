@@ -1,5 +1,5 @@
 
-const CACHE = "optivision-v2";
+const CACHE = "optivision-v3";
 
 const ASSETS = [
   "./",
@@ -40,7 +40,8 @@ self.addEventListener("fetch", event => {
 
   const importantFile =
     url.pathname.endsWith("/app.js") ||
-    url.pathname.endsWith("/index.html");
+    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/styles.css");
 
   if (importantFile) {
     event.respondWith(
