@@ -291,7 +291,7 @@ function stopFaceDetection() {
 // ========================================
 
 function selectFrame(name) {
-  if (!frameStyles[name]) return;
+  if (!frameImages[name]) return;
 
   currentFrame = name;
 
